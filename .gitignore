@@ -77,6 +77,9 @@ valknut-report.html/
 valknut-report.json/
 **/.playwright-mcp/
 **/.paseo-provider-history/
+# Written by local MCP tooling; carries a bearer token
+**/.mcp.json
+**/.mcp.json.*.bak
 .claude/settings.local.json
 **/.claude/settings.local.json
 .claude/scheduled_tasks.lock
