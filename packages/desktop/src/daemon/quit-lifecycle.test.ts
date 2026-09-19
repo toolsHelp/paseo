@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_DESKTOP_SETTINGS } from "../settings/desktop-settings";
 import {
@@ -230,23 +230,29 @@ describe("quit-lifecycle", () => {
 
   it("exits when the pending update flush never settles", async () => {
     const events: string[] = [];
-    const quitLifecycle = createQuitLifecycle({
-      app: { exit: (code) => events.push(`exit:${code}`) },
-      closeTransportSessions: () => {},
-      stopDesktopManagedDaemonIfNeeded: async () => false,
-      onStopError: () => {},
-      onFlushError: () => {},
-      flushPendingUpdate: () => new Promise<void>(() => {}),
-      flushDeadlineMs: 5,
-    });
+    vi.useFakeTimers();
+    try {
+      const quitLifecycle = createQuitLifecycle({
+        app: { exit: (code) => events.push(`exit:${code}`) },
+        closeTransportSessions: () => {},
+        stopDesktopManagedDaemonIfNeeded: async () => false,
+        onStopError: () => {},
+        onFlushError: () => {},
+        flushPendingUpdate: () => new Promise<void>(() => {}),
+        flushDeadlineMs: 5,
+      });
 
-    quitLifecycle.handleBeforeQuit({ preventDefault: () => {} });
-    await waitForQuitLifecycle();
+      quitLifecycle.handleBeforeQuit({ preventDefault: () => {} });
+      await vi.advanceTimersByTimeAsync(4);
 
-    expect(events).toEqual([]);
+      // Exit must not happen before the deadline fires.
+      expect(events).toEqual([]);
 
-    await new Promise((resolve) => setTimeout(resolve, 20));
+      await vi.advanceTimersByTimeAsync(1);
 
-    expect(events).toEqual(["exit:0"]);
+      expect(events).toEqual(["exit:0"]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
